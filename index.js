@@ -3,7 +3,7 @@ const cors = require("cors");
 const app = express();
 const PORT = 8080;
 const { posts } = require("./data.js");
-const { dday } = require("./dday-data.js");
+const { dday } = require("./dday.js");
 const { userinfo } = require("./userInfo.js");
 
 app.use(cors());
