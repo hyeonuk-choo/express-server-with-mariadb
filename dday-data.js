@@ -1,8 +1,8 @@
 module.exports = {
-  data: [
+  dday: [
     {
       title: "수능",
-      remaningDay: -36,
+      remainingDay: -36,
     },
   ],
 };
