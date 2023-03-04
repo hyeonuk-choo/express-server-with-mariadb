@@ -5,6 +5,7 @@ const PORT = 8080;
 const { posts } = require("./data.js");
 const { dday } = require("./dday.js");
 const { userinfo } = require("./userInfo.js");
+const { week, month } = require("./rank.js");
 
 app.use(cors());
 
@@ -14,6 +15,18 @@ app.get("/api/dday", (req, res) => {
 
 app.get("/api/userinfo", (req, res) => {
   res.json(userinfo);
+});
+
+app.get("/api/rank/week", (req, res) => {
+  const { page } = req.query;
+  if (page == 0) res.json(week[0]);
+  if (page == 1) res.json(week[1]);
+  if (page == 2) res.json(week[2]);
+  if (page == 3) res.json(week[3]);
+});
+
+app.get("/api/rank/month", (req, res) => {
+  res.json(month);
 });
 
 app.listen(PORT, () => {
