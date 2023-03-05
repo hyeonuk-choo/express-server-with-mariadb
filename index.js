@@ -26,7 +26,11 @@ app.get("/api/rank/week", (req, res) => {
 });
 
 app.get("/api/rank/month", (req, res) => {
-  res.json(month);
+  const { page } = req.query;
+  if (page == 0) res.json(month[0]);
+  if (page == 1) res.json(month[1]);
+  if (page == 2) res.json(month[2]);
+  if (page == 3) res.json(month[3]);
 });
 
 app.listen(PORT, () => {
