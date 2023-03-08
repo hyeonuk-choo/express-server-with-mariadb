@@ -12,27 +12,6 @@ const fs = require("fs");
 app.use(cors());
 app.use(express.json());
 
-app.post("/api/todo-add", (req, res) => {
-  const newData = req.body; // get the new data from the request body
-
-  // update the object's data with the new data
-
-  console.log(newData);
-  // write the updated data back to the todos module
-  fs.writeFile(
-    "./todos.js",
-    `module.exports = {todos:[${JSON.stringify(newData)}]}`,
-    (err) => {
-      if (err) {
-        console.error(err);
-        res.status(500).send("Error updating data.");
-      } else {
-        res.status(200).send("your Requeest success^^");
-      }
-    }
-  );
-});
-
 app.get("/api/dday", (req, res) => {
   res.json(dday);
 });
@@ -55,6 +34,33 @@ app.get("/api/rank/month", (req, res) => {
   if (page == 1) res.json(month[1]);
   if (page == 2) res.json(month[2]);
   if (page == 3) res.json(month[3]);
+});
+
+app.post("/api/todo-add", (req, res) => {
+  const newData = req.body; // get the new data from the request body
+  // write the updated data back to the todos module
+
+  fs.writeFileSync(
+    "./todos.js",
+    `module.exports = {todos:[${JSON.stringify(newData)}]}`,
+    (err) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send("Error updating data.");
+      } else {
+        delete require.cache[require.resolve("./todos.js")];
+        res.status(200).send("your Requeest success^^");
+      }
+    }
+  );
+});
+
+app.get("/api/planner-main", (req, res) => {
+  delete require.cache[require.resolve("./todos.js")];
+  let todos2 = require("./todos.js");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Surrogate-Control", "no-store");
+  res.json(todos2.todos);
 });
 
 app.listen(PORT, () => {
