@@ -2,7 +2,7 @@ module.exports = {
   userinfo: [
     {
       id: 1,
-      nickname: "good-refactor91",
+      nickname: "goodRefactor91",
       totalCnt: 9,
       completeCnt: 6,
       profileImage: "",
@@ -15,6 +15,14 @@ module.exports = {
       achievementRate: {
         thisMonthRate: 20,
         totalRate: 85,
+      },
+      weekScore: {
+        weekScore: 355,
+        weekRank: 17,
+      },
+      monthScore: {
+        monthScore: 3095,
+        monthRank: 19,
       },
     },
   ],
