@@ -7,6 +7,7 @@ const { week, month } = require("./rank.js");
 const { posts } = require("./data.js");
 const { dday } = require("./dday.js");
 const todosData = require("./todos.js");
+const { chartData } = require("./lineChartData.js");
 const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
@@ -125,6 +126,10 @@ app.get("/api/rank/month", (req, res) => {
   if (page == 1) res.json(month[1]);
   if (page == 2) res.json(month[2]);
   if (page == 3) res.json(month[3]);
+});
+
+app.get("/api/achievement/thisweek", (req, res) => {
+  res.json(chartData);
 });
 
 app.listen(PORT, () => {
