@@ -16,7 +16,7 @@ module.exports = {
         lastWeekRate: 35,
         thisWeekRate: 85,
         lastMonthRate: 25,
-        thisMonthRate: 70,
+        thisMonthRate: 20,
         totalRate: 85,
       },
       weekScore: {
