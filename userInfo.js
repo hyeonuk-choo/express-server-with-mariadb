@@ -13,7 +13,10 @@ module.exports = {
       followersCnt: 572,
       imgList: [],
       achievementRate: {
-        thisMonthRate: 20,
+        lastWeekRate: 35,
+        thisWeekRate: 85,
+        lastMonthRate: 25,
+        thisMonthRate: 70,
         totalRate: 85,
       },
       weekScore: {
