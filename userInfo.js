@@ -17,10 +17,12 @@ module.exports = {
         totalRate: 85,
       },
       weekScore: {
+        lasWeekScore: 290,
         weekScore: 355,
         weekRank: 17,
       },
       monthScore: {
+        lastMonthScore: 2890,
         monthScore: 3095,
         monthRank: 19,
       },
