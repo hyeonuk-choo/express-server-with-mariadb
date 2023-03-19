@@ -1,32 +1,25 @@
+//프레임워크, 라이브러리
 const express = require("express");
 const cors = require("cors");
-const app = express();
-const PORT = 8080;
+const fs = require("fs");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+// 데이터파일
 const { userinfo } = require("./userInfo.js");
 const { week, month } = require("./rank.js");
 const { posts } = require("./data.js");
 const { dday } = require("./dday.js");
 const todosData = require("./todos.js");
 const { chartData } = require("./lineChartData.js");
-const fs = require("fs");
-const path = require("path");
-const { v4: uuidv4 } = require("uuid");
 
+const app = express();
+const PORT = 8080;
 app.use(cors());
 app.use(express.json());
 
 app.put("/api/todo-update", (req, res) => {
   const updatedTodo = req.body; // get the updated todo item from the request body
   try {
-    // Map over the todos array and replace the matching todo item with the updated todo item
-    // const updatedTodos = todosData.todos.map((todo) => {
-    //   if (todo.id === updatedTodo.id) {
-    //     return { ...todo, ...updatedTodo };
-    //   }
-    //   return todo;
-    // });
-
-    // Check if the todo item was found and updated
     if (updatedTodo === todosData.todos) {
       return res.status(404).send("Todo item not found.");
     }
@@ -144,5 +137,4 @@ app.get("/", (req, res) => {
 app.get("/api/posts", (req, res) => {
   res.json(posts);
 });
-
-// ----- 예시 -----
+// ----------------
