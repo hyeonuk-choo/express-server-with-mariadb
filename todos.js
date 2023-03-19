@@ -1,1 +1,3 @@
-module.exports = {"todos":[{"title":"","mode":false,"content":"ㄴㅇㄹㅇ","id":"1f43b513-f038-400c-b3ae-4099b9fa40fa"},{"content":"ㅁㅇ","mode":false,"title":"","id":"cfcaa8fb-7412-48a4-b4c4-814c1f8c9a9d"},{"title":"위로 위로 추가","mode":false,"id":"7ec9c499-813c-4355-bfe7-cf8ce7692335","content":"역시 ㅎㅎ??"},{"title":"123","mode":false,"content":"ㅁㄴㅇㄹ","id":"2f62faca-d270-4810-b66f-e475ceb353a1"}]}
+module.exports = {
+  todos: [],
+};
