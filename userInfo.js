@@ -2,7 +2,7 @@ module.exports = {
   userinfo: [
     {
       id: 1,
-      nickname: "goodRefactor91",
+      nickname: "아침햇살",
       totalCnt: 9,
       completeCnt: 6,
       profileImage: "",
