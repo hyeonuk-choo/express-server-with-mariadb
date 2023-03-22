@@ -7,8 +7,6 @@ const { v4: uuidv4 } = require("uuid");
 // 데이터파일
 const { userinfo } = require("./userInfo.js");
 const { week, month } = require("./rank.js");
-const { posts } = require("./data.js");
-const { dday } = require("./dday.js");
 const todosData = require("./todos.js");
 const { chartData } = require("./lineChartData.js");
 
@@ -97,10 +95,6 @@ app.get("/api/planner-main", (req, res) => {
   res.json(todos2.todos);
 });
 
-app.get("/api/dday", (req, res) => {
-  res.json(dday);
-});
-
 app.get("/api/userinfo", (req, res) => {
   res.json(userinfo);
 });
@@ -129,12 +123,6 @@ app.listen(PORT, () => {
   console.log(`server is running on ${PORT}`);
 });
 
-// ----- 예시 -----
 app.get("/", (req, res) => {
-  res.send("Here is homepage~!!");
+  res.send("Here is homepage!");
 });
-
-app.get("/api/posts", (req, res) => {
-  res.json(posts);
-});
-// ----------------
