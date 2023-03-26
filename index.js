@@ -4,6 +4,7 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
+
 // 데이터파일
 const { userinfo } = require("./userInfo.js");
 const { week, month } = require("./rank.js");
@@ -14,6 +15,59 @@ const app = express();
 const PORT = 8080;
 app.use(cors());
 app.use(express.json());
+
+// mariaDB 로직
+const mariadb = require("mariadb");
+require("dotenv").config();
+const host = process.env.DB_HOST;
+const user = process.env.DB_USER;
+const password = process.env.DB_PASSWORD;
+const database = process.env.DB_DATABASE;
+
+const pool = mariadb.createPool({
+  host,
+  user,
+  password,
+  database,
+});
+
+async function executeQuery(query) {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const result = await conn.query(query);
+    return result;
+  } catch (err) {
+    throw err;
+  } finally {
+    if (conn) conn.end();
+  }
+}
+
+// executeQuery("SELECT * FROM userinfo")
+//   .then((result) => {
+//     // res.setHeader("Cache-Control", "no-cache");
+//     // res.setHeader("Surrogate-Control", "no-store");
+//     console.log(result);
+//   })
+//   .catch((err) => {
+//     console.error(err);
+//   });
+
+app.get("/api/planner-main", (req, res) => {
+  // delete require.cache[require.resolve("./todos.js")];
+  // 조회query문 함수
+  executeQuery("SELECT * FROM students")
+    .then((result) => {
+      // res.setHeader("Cache-Control", "no-cache");
+      // res.setHeader("Surrogate-Control", "no-store");
+      console.log(result);
+      res.json(result);
+    })
+    .catch((err) => {
+      console.error(err);
+    });
+});
 
 app.put("/api/todo-update", (req, res) => {
   const updatedTodo = req.body; // get the updated todo item from the request body
@@ -87,16 +141,18 @@ app.post("/api/todo-add", (req, res) => {
   }
 });
 
-app.get("/api/planner-main", (req, res) => {
-  delete require.cache[require.resolve("./todos.js")];
-  let todos2 = require("./todos.js");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Surrogate-Control", "no-store");
-  res.json(todos2.todos);
-});
-
 app.get("/api/userinfo", (req, res) => {
-  res.json(userinfo);
+  executeQuery("SELECT * FROM userinfo")
+    .then((result) => {
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Surrogate-Control", "no-store");
+      console.log(result);
+      res.json(result);
+    })
+    .catch((err) => {
+      console.error(err);
+    });
+  // res.json(userinfo);
 });
 
 app.get("/api/rank/week", (req, res) => {
