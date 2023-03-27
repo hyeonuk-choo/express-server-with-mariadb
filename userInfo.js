@@ -20,7 +20,7 @@ module.exports = {
         totalRate: 85,
       },
       weekScore: {
-        lasWeekScore: 290,
+        lastWeekScore: 290,
         weekScore: 355,
         weekRank: 17,
       },
