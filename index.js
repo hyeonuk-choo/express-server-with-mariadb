@@ -43,6 +43,44 @@ async function executeQuery(query, params) {
   }
 }
 
+// 사용자 이름 중복체크 API 구현
+app.post("/api/username-check", async (req, res) => {
+  const username = req.body.username;
+  try {
+    const result = await executeQuery(
+      "SELECT * FROM userinfo WHERE username = ?",
+      [username]
+    );
+    if (result.length > 0) {
+      res.json({ exists: true });
+    } else {
+      res.json({ exists: false });
+    }
+  } catch (error) {
+    console.error("Username check failed:", error);
+    res.status(500).send("Username check failed");
+  }
+});
+
+// 이메일 중복체크 API 구현
+app.post("/api/email-check", async (req, res) => {
+  const email = req.body.email;
+  try {
+    const result = await executeQuery(
+      "SELECT * FROM userinfo WHERE email = ?",
+      [email]
+    );
+    if (result.length > 0) {
+      res.json({ exists: true });
+    } else {
+      res.json({ exists: false });
+    }
+  } catch (error) {
+    console.error("Email check failed:", error);
+    res.status(500).send("Email check failed");
+  }
+});
+
 app.post("/api/todo-create", async (req, res) => {
   const newTodo = req.body;
   const oneTodo = newTodo[0];
