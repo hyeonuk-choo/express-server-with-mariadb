@@ -81,6 +81,25 @@ app.post("/api/email-check", async (req, res) => {
   }
 });
 
+app.post("/api/sign-up", async (req, res) => {
+  // 클라이언트에서 전달받은 회원가입 정보 추출
+  const { username, email, password } = req.body;
+  try {
+    const result = await executeQuery(
+      "INSERT INTO userinfo (username, email, password) VALUES (?, ?, ?)",
+      [username, email, password]
+    );
+    res
+      .status(201)
+      .json({ success: true, message: "회원가입이 완료되었습니다." });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ success: false, message: "회원가입 도중 오류가 발생했습니다." });
+  }
+});
+
 app.post("/api/todo-create", async (req, res) => {
   const newTodo = req.body;
   const oneTodo = newTodo[0];
