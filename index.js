@@ -1,6 +1,7 @@
 //프레임워크, 라이브러리
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const fs = require("fs");
 const path = require("path");
 
@@ -18,6 +19,7 @@ app.use(express.json());
 // mariaDB 로직
 const mariadb = require("mariadb");
 require("dotenv").config();
+const secretkey = process.env.SECRET_KEY;
 const host = process.env.DB_HOST;
 const user = process.env.DB_USER;
 const password = process.env.DB_PASSWORD;
@@ -42,6 +44,30 @@ async function executeQuery(query, params) {
     if (conn) conn.release();
   }
 }
+
+// 로그인api
+app.post("/api/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const rows = await executeQuery(
+      "SELECT id, email, password FROM userinfo WHERE email = ?",
+      [email]
+    );
+    const user = rows[0];
+
+    if (user && user.password === password) {
+      const token = jwt.sign({ id: user.id, email: user.email }, secretkey, {
+        expiresIn: "1h",
+      });
+      res.json({ token });
+    } else {
+      res.status(401).json({ error: "Invalid email or password" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // 사용자 이름 중복체크 API 구현
 app.post("/api/username-check", async (req, res) => {
