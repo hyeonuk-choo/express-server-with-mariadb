@@ -32,19 +32,6 @@ const pool = mariadb.createPool({
   database,
 });
 
-async function executeQuery(query, params) {
-  let conn;
-  try {
-    conn = await pool.getConnection();
-    const result = await conn.query(query, params);
-    return result;
-  } catch (err) {
-    throw err;
-  } finally {
-    if (conn) conn.release();
-  }
-}
-
 const authenticateUser = (req, res, next) => {
   // HTTP 요청 헤더에서 "Authorization" 값을 가져옵니다.
   const authHeader = req.headers.authorization;
@@ -63,11 +50,24 @@ const authenticateUser = (req, res, next) => {
     }
     // 검증된 사용자 정보를 req.user에 저장합니다.
     req.user = decoded;
-    console.log(req.user);
+    console.log("req.user", req.user);
     // next 파라미터 콜백함수는 중요한 것이었다.
     next();
   });
 };
+
+async function executeQuery(query, params) {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const result = await conn.query(query, params);
+    return result;
+  } catch (err) {
+    throw err;
+  } finally {
+    if (conn) conn.release();
+  }
+}
 
 app.get("/api/userinfo", authenticateUser, (req, res) => {
   res.setHeader("Cache-Control", "no-cache");
@@ -183,9 +183,10 @@ app.post("/api/todo-create", async (req, res) => {
   const oneTodo = newTodo[0];
 
   try {
-    const query = `INSERT INTO todos (id, addMode, updateMode, isCompleted, title, inputMessage) VALUES (?, ? , ?, ?, ?, ?)`;
+    const query = `INSERT INTO todos (id, user_id, addMode, updateMode, isCompleted, title, inputMessage) VALUES (?, ? , ?, ?, ?, ?, ?)`;
     const params = [
       newTodo[0].id,
+      newTodo[0].user_id,
       newTodo[0].addMode,
       newTodo[0].updateMode,
       newTodo[0].isCompleted,
@@ -201,15 +202,19 @@ app.post("/api/todo-create", async (req, res) => {
   }
 });
 
-app.put("/api/todo-iscompleted", async (req, res) => {
+app.put("/api/todo-iscompleted", authenticateUser, async (req, res) => {
   try {
     const updatedTodo = req.body;
     console.log("updatedTodo", updatedTodo);
 
     const query = `UPDATE todos SET isCompleted = NOT isCompleted WHERE id = '${updatedTodo[0].id}'`;
-
     await executeQuery(query);
-    const getResult = await executeQuery("SELECT * FROM todos");
+
+    const userId = req.user.id; // JWT를 통해 인증된 사용자의 ID를 가져옵니다.
+    const getResult = await executeQuery(
+      `SELECT * FROM todos WHERE user_id = ${userId}`
+    );
+
     res.json(getResult);
   } catch (error) {
     console.error(error);
