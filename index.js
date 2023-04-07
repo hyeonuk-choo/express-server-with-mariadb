@@ -45,6 +45,58 @@ async function executeQuery(query, params) {
   }
 }
 
+const authenticateUser = (req, res, next) => {
+  // HTTP 요청 헤더에서 "Authorization" 값을 가져옵니다.
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  // "Authorization" 헤더 값은 "Bearer [JWT 토큰]" 형식이므로, 토큰만 분리합니다.
+  const token = authHeader.split(" ")[1];
+
+  // JWT 토큰을 검증합니다.
+  jwt.verify(token, secretkey, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ message: "Token is not valid" });
+    }
+    // 검증된 사용자 정보를 req.user에 저장합니다.
+    req.user = decoded;
+    console.log(req.user);
+    // next 파라미터 콜백함수는 중요한 것이었다.
+    next();
+  });
+};
+
+app.get("/api/userinfo", authenticateUser, (req, res) => {
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Surrogate-Control", "no-store");
+  const userID = req.user.id;
+
+  executeQuery("SELECT * FROM userinfo WHERE id = ?", [userID])
+    .then((result) => {
+      res.json(result);
+    })
+    .catch((err) => {
+      console.error(err);
+    });
+});
+
+app.get("/api/planner-main", authenticateUser, (req, res) => {
+  // delete require.cache[require.resolve("./todos.js")];
+  // 조회query문 함수
+  const userID = req.user.id;
+
+  executeQuery("SELECT * FROM todos WHERE user_id = ?", [userID])
+    .then((result) => {
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Surrogate-Control", "no-store");
+      res.json(result);
+    })
+    .catch((err) => {});
+});
+
 // 로그인api
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
@@ -147,29 +199,6 @@ app.post("/api/todo-create", async (req, res) => {
     console.error(err);
     res.status(500).send("Error updating todo item.");
   }
-});
-
-app.get("/api/planner-main", (req, res) => {
-  // delete require.cache[require.resolve("./todos.js")];
-  // 조회query문 함수
-  executeQuery("SELECT * FROM todos")
-    .then((result) => {
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Surrogate-Control", "no-store");
-      res.json(result);
-    })
-    .catch((err) => {});
-});
-
-app.get("/api/userinfo", (req, res) => {
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Surrogate-Control", "no-store");
-  executeQuery("SELECT * FROM userinfo")
-    .then((result) => {
-      res.json(result);
-    })
-    .catch((err) => {});
-  // res.json(userinfo);
 });
 
 app.put("/api/todo-iscompleted", async (req, res) => {
