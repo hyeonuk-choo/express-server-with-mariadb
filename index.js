@@ -83,20 +83,6 @@ app.get("/api/userinfo", authenticateUser, (req, res) => {
     });
 });
 
-app.get("/api/planner-main", authenticateUser, (req, res) => {
-  // delete require.cache[require.resolve("./todos.js")];
-  // 조회query문 함수
-  const userID = req.user.id;
-
-  executeQuery("SELECT * FROM todos WHERE user_id = ?", [userID])
-    .then((result) => {
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Surrogate-Control", "no-store");
-      res.json(result);
-    })
-    .catch((err) => {});
-});
-
 // 로그인api
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
@@ -178,15 +164,15 @@ app.post("/api/sign-up", async (req, res) => {
   }
 });
 
-app.post("/api/todo-create", async (req, res) => {
+app.post("/api/todo-create", authenticateUser, async (req, res) => {
   const newTodo = req.body;
-  const oneTodo = newTodo[0];
+  const userID = req.user.id; //authenticateUser함수로 부터 받는다.
 
   try {
     const query = `INSERT INTO todos (id, user_id, addMode, updateMode, isCompleted, title, inputMessage) VALUES (?, ? , ?, ?, ?, ?, ?)`;
     const params = [
       newTodo[0].id,
-      newTodo[0].user_id,
+      userID,
       newTodo[0].addMode,
       newTodo[0].updateMode,
       newTodo[0].isCompleted,
@@ -202,17 +188,31 @@ app.post("/api/todo-create", async (req, res) => {
   }
 });
 
+app.get("/api/planner-main", authenticateUser, (req, res) => {
+  // delete require.cache[require.resolve("./todos.js")];
+  // 조회query문 함수
+  const userID = req.user.id;
+
+  executeQuery("SELECT * FROM todos WHERE user_id = ?", [userID])
+    .then((result) => {
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Surrogate-Control", "no-store");
+      res.json(result);
+    })
+    .catch((err) => {});
+});
+
 app.put("/api/todo-iscompleted", authenticateUser, async (req, res) => {
   try {
     const updatedTodo = req.body;
     console.log("updatedTodo", updatedTodo);
+    const userID = req.user.id; // JWT를 통해 인증된 사용자의 ID를 가져옵니다. //authenticateUser함수로 부터 받는다.
 
     const query = `UPDATE todos SET isCompleted = NOT isCompleted WHERE id = '${updatedTodo[0].id}'`;
     await executeQuery(query);
 
-    const userId = req.user.id; // JWT를 통해 인증된 사용자의 ID를 가져옵니다.
     const getResult = await executeQuery(
-      `SELECT * FROM todos WHERE user_id = ${userId}`
+      `SELECT * FROM todos WHERE user_id = ${userID}`
     );
 
     res.json(getResult);
@@ -222,13 +222,21 @@ app.put("/api/todo-iscompleted", authenticateUser, async (req, res) => {
   }
 });
 
-app.put("/api/todo-update", async (req, res) => {
+app.put("/api/todo-update", authenticateUser, async (req, res) => {
   try {
     const updatedTodo = req.body;
+    const userID = req.user.id; // JWT를 통해 인증된 사용자의 ID를 가져옵니다. //authenticateUser함수로 부터 받는다.
     console.log("updatedTodo", updatedTodo);
-    const query = `UPDATE todos SET title = '${updatedTodo[0].title}' WHERE id = '${updatedTodo[0].id}'`;
-    await executeQuery(query);
-    const getResult = await executeQuery("SELECT * FROM todos");
+
+    const query = `UPDATE todos SET title = ? WHERE id = ? AND user_id = ?`;
+    const params = [updatedTodo[0].title, updatedTodo[0].id, userID];
+    await executeQuery(query, params);
+
+    const getResult = await executeQuery(
+      "SELECT * FROM todos WHERE user_id = ?",
+      [userID]
+    );
+
     res.json(getResult);
   } catch (error) {
     console.error(error);
@@ -236,10 +244,11 @@ app.put("/api/todo-update", async (req, res) => {
   }
 });
 
-app.delete("/api/todo-delete", async (req, res) => {
+app.delete("/api/todo-delete", authenticateUser, async (req, res) => {
+  const userID = req.user.id; // JWT를 통해 인증된 사용자의 ID를 가져옵니다. //authenticateUser함수로 부터 받는다.
   try {
     const payload = req.body; // get the id from the request body
-    console.log("payload", payload);
+    console.log("delete api payload", payload);
 
     const query = `DELETE FROM todos WHERE id = '${payload.id}'`;
     await executeQuery(query);
