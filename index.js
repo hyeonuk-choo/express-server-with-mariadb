@@ -30,6 +30,7 @@ const pool = mariadb.createPool({
   user,
   password,
   database,
+  connectionLimit: 20,
 });
 
 const authenticateUser = (req, res, next) => {
@@ -104,6 +105,8 @@ app.post("/api/login", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
@@ -165,26 +168,46 @@ app.post("/api/sign-up", async (req, res) => {
 });
 
 app.post("/api/todo-create", authenticateUser, async (req, res) => {
+  let connection;
   const newTodo = req.body;
+  const { id, addMode, updateMode, isCompleted, title, inputMessage } =
+    newTodo[0];
   const userID = req.user.id; //authenticateUser함수로 부터 받는다.
 
   try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction(); // 트랜잭션 시작
+
     const query = `INSERT INTO todos (id, user_id, addMode, updateMode, isCompleted, title, inputMessage) VALUES (?, ? , ?, ?, ?, ?, ?)`;
     const params = [
-      newTodo[0].id,
+      id,
       userID,
-      newTodo[0].addMode,
-      newTodo[0].updateMode,
-      newTodo[0].isCompleted,
-      newTodo[0].title,
-      newTodo[0].inputMessage,
+      addMode,
+      updateMode,
+      isCompleted,
+      title,
+      inputMessage,
     ];
-    const result = await executeQuery(query, params);
-    console.log(result);
+    await connection.query(query, params);
+
+    // todos_count 값을 변경하기 전에 todos 테이블에서 해당 사용자의 row 개수를 확인합니다.
+    const [{ count }] = await connection.query(
+      "SELECT COUNT(*) as count FROM todos WHERE user_id = ?",
+      [userID]
+    );
+    await connection.query("UPDATE userinfo SET totalCnt = ? WHERE id = ?", [
+      count,
+      userID,
+    ]);
+
+    await connection.commit(); // 트랜잭션 커밋
+
     res.status(200).send("Todo item updated successfully.");
   } catch (err) {
     console.error(err);
     res.status(500).send("Error updating todo item.");
+  } finally {
+    if (connection) connection.release();
   }
 });
 
@@ -203,22 +226,37 @@ app.get("/api/planner-main", authenticateUser, (req, res) => {
 });
 
 app.put("/api/todo-iscompleted", authenticateUser, async (req, res) => {
+  let connection;
   try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction(); // 트랜잭션 시작
     const updatedTodo = req.body;
-    console.log("updatedTodo", updatedTodo);
     const userID = req.user.id; // JWT를 통해 인증된 사용자의 ID를 가져옵니다. //authenticateUser함수로 부터 받는다.
 
     const query = `UPDATE todos SET isCompleted = NOT isCompleted WHERE id = '${updatedTodo[0].id}'`;
-    await executeQuery(query);
+    await connection.query(query);
 
-    const getResult = await executeQuery(
-      `SELECT * FROM todos WHERE user_id = ${userID}`
+    // todos 테이블에서 user_id가 같고 isCompleted가 true인 개수를 세어서 userinfo 테이블에 업데이트합니다.
+    const [{ count }] = await connection.query(
+      `SELECT COUNT(*) as count FROM todos WHERE user_id = ? AND isCompleted = 1`,
+      [userID]
     );
+    await connection.query(`UPDATE userinfo SET completeCnt = ? WHERE id = ?`, [
+      count,
+      userID,
+    ]);
 
+    const getResult = await connection.query(
+      `SELECT * FROM todos WHERE user_id = ?`,
+      [userID]
+    );
+    await connection.commit(); // 트랜잭션 커밋
     res.json(getResult);
   } catch (error) {
     console.error(error);
     res.status(500).send("Error updating todo item.");
+  } finally {
+    if (connection) connection.release();
   }
 });
 
@@ -226,7 +264,6 @@ app.put("/api/todo-update", authenticateUser, async (req, res) => {
   try {
     const updatedTodo = req.body;
     const userID = req.user.id; // JWT를 통해 인증된 사용자의 ID를 가져옵니다. //authenticateUser함수로 부터 받는다.
-    console.log("updatedTodo", updatedTodo);
 
     const query = `UPDATE todos SET title = ? WHERE id = ? AND user_id = ?`;
     const params = [updatedTodo[0].title, updatedTodo[0].id, userID];
@@ -245,16 +282,44 @@ app.put("/api/todo-update", authenticateUser, async (req, res) => {
 });
 
 app.delete("/api/todo-delete", authenticateUser, async (req, res) => {
-  const userID = req.user.id; // JWT를 통해 인증된 사용자의 ID를 가져옵니다. //authenticateUser함수로 부터 받는다.
+  let connection;
   try {
-    const payload = req.body; // get the id from the request body
-    console.log("delete api payload", payload);
+    connection = await pool.getConnection();
+    await connection.beginTransaction(); // 트랜잭션 시작
 
-    const query = `DELETE FROM todos WHERE id = '${payload.id}'`;
-    await executeQuery(query);
-    const getResult = await executeQuery("SELECT * FROM todos");
-    res.json(getResult);
-  } catch (error) {}
+    const userID = req.user.id; // //authenticateUser함수로 JWT를 통해 인증된 사용자의 ID를 가져옵니다.
+    const { id } = req.body; // get the id from the request body
+
+    await connection.query("DELETE FROM todos WHERE id = ? AND user_id = ?", [
+      id,
+      userID,
+    ]);
+
+    // todos_count 값을 변경하기 전에 todos 테이블에서 해당 사용자의 row 개수를 확인합니다.
+    const [{ totalCount }] = await connection.query(
+      "SELECT COUNT(*) as totalCount FROM todos WHERE user_id = ?",
+      [userID]
+    );
+    const [{ completeCount }] = await connection.query(
+      "SELECT COUNT(*) as completeCount FROM todos WHERE user_id = ? AND isCompleted = 1",
+      [userID]
+    );
+    // userinfo 테이블의 totalCnt와 completeCnt 열을 업데이트합니다.
+    await connection.query(
+      "UPDATE userinfo SET totalCnt = ?, completeCnt = ? WHERE id = ?",
+      [totalCount, completeCount, userID]
+    );
+
+    await connection.commit(); // 트랜잭션 커밋
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error(error);
+    await connection.rollback(); // 에러가 발생하면 트랜잭션 롤백
+    res.status(500).send("Internal Server Error");
+  } finally {
+    if (connection) connection.release();
+  }
 });
 
 app.get("/api/rank/week", (req, res) => {
