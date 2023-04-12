@@ -5,16 +5,17 @@ const jwt = require("jsonwebtoken");
 const fs = require("fs");
 const path = require("path");
 
-// 데이터파일
-const { userinfo } = require("./userInfo.js");
-const { week, month } = require("./rank.js");
-const todosData = require("./todos.js");
+// 데이터
+const weekRankRouter = require("./routes/weekRank");
+const monthRankRouter = require("./routes/monthRank");
 const { chartData } = require("./lineChartData.js");
 
 const app = express();
 const PORT = 8080;
 app.use(cors());
 app.use(express.json());
+app.use("/api/rank/week", weekRankRouter);
+app.use("/api/rank/month", monthRankRouter);
 
 // mariaDB 로직
 const mariadb = require("mariadb");
@@ -105,8 +106,6 @@ app.post("/api/login", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
-  } finally {
-    if (connection) connection.release();
   }
 });
 
@@ -320,22 +319,6 @@ app.delete("/api/todo-delete", authenticateUser, async (req, res) => {
   } finally {
     if (connection) connection.release();
   }
-});
-
-app.get("/api/rank/week", (req, res) => {
-  const { page } = req.query;
-  if (page == 0) res.json(week[0]);
-  if (page == 1) res.json(week[1]);
-  if (page == 2) res.json(week[2]);
-  if (page == 3) res.json(week[3]);
-});
-
-app.get("/api/rank/month", (req, res) => {
-  const { page } = req.query;
-  if (page == 0) res.json(month[0]);
-  if (page == 1) res.json(month[1]);
-  if (page == 2) res.json(month[2]);
-  if (page == 3) res.json(month[3]);
 });
 
 app.get("/api/achievement/thisweek", (req, res) => {
