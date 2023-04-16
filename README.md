@@ -1,1 +1,1 @@
-this is temporary server using express framework
+this is server using Express framework and MariaDB
