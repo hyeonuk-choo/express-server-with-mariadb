@@ -101,11 +101,11 @@ app.post("/api/login", async (req, res) => {
       });
       res.json({ token });
     } else {
-      res.status(401).json({ error: "Invalid email or password" });
+      res.status(200).json({ error: "Invalid email or password" });
     }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(200).json({ error: "Internal server error" });
   }
 });
 
