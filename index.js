@@ -25,6 +25,8 @@ const host = process.env.DB_HOST;
 const user = process.env.DB_USER;
 const password = process.env.DB_PASSWORD;
 const database = process.env.DB_DATABASE;
+// 이미지파일 업로드
+const multer = require("multer");
 
 const pool = mariadb.createPool({
   host,
@@ -52,7 +54,7 @@ const authenticateUser = (req, res, next) => {
     }
     // 검증된 사용자 정보를 req.user에 저장합니다.
     req.user = decoded;
-    console.log("req.user", req.user);
+    console.log("authenticateUser => req.user", req.user);
     // next 파라미터 콜백함수는 중요한 것이었다.
     next();
   });
@@ -325,6 +327,24 @@ app.get("/api/achievement/thisweek", (req, res) => {
   res.json(chartData);
 });
 
+// 마이페이지 유저 프로필 수정기능
+app.put("/api/edit-profile", authenticateUser, async (req, res) => {
+  // //authenticateUser함수로 JWT를 통해 인증된 사용자의 ID를 가져옵니다.
+  const userID = req.user.id;
+  const data = req.body;
+  console.log("서버가 데이터 받음", data);
+  console.log("JWT를 통해 인증된 사용자의 ID", userID);
+  const query = `UPDATE userinfo SET username = ?, school=?, grade=?, myMotto=? WHERE id = ?`;
+  const params = [data.username, data.school, data.grade, data.myMotto, userID];
+  await executeQuery(query, params);
+
+  const getResult = await executeQuery("SELECT * FROM userinfo WHERE id = ?", [
+    userID,
+  ]);
+
+  res.json(getResult);
+});
+
 app.listen(PORT, () => {
   console.log(`server is running on ${PORT}`);
 });
@@ -332,3 +352,43 @@ app.listen(PORT, () => {
 app.get("/", (req, res) => {
   res.send("Here is homepage!");
 });
+
+// // Multer를 사용한 파일 업로드 설정 // 해당 기능은 향후 추가 예정
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "uploads/");
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, `${Date.now()}_${file.originalname}`);
+//   },
+// });
+
+// const upload = multer({ storage });
+
+// // 이미지 업로드 라우터 // 해당 기능은 향후 추가 예정
+// app.post("/api/upload", upload.single("profileImage"), async (req, res) => {
+//   try {
+//     const file = req.file;
+//     const userId = req.body.userId;
+
+//     if (!file) {
+//       res.status(400).send("No file uploaded.");
+//       return;
+//     }
+
+//     const conn = await pool.getConnection();
+//     const query = `
+//       UPDATE userinfo
+//       SET profileImage = ?
+//       WHERE id = ?;
+//     `;
+
+//     await conn.query(query, [file.path, userId]);
+//     conn.release();
+
+//     res.status(200).send("Profile image uploaded and saved.");
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send("Internal server error.");
+//   }
+// });
