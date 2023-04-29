@@ -37,7 +37,7 @@ const pool = mariadb.createPool({
 });
 
 const authenticateUser = (req, res, next) => {
-  // HTTP 요청 헤더에서 "Authorization" 값을 가져옵니다.
+  // HTTP 요청 헤더에서 "authorization" 값을 가져옵니다.
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -54,11 +54,29 @@ const authenticateUser = (req, res, next) => {
     }
     // 검증된 사용자 정보를 req.user에 저장합니다.
     req.user = decoded;
-    console.log("authenticateUser => req.user", req.user);
+    console.log("authenticateUser => req.user1", req.user);
     // next 파라미터 콜백함수는 중요한 것이었다.
     next();
   });
 };
+
+// 마이페이지 유저 프로필 수정기능
+app.put("/api/edit-profile", authenticateUser, async (req, res) => {
+  // //authenticateUser함수로 JWT를 통해 인증된 사용자의 ID를 가져옵니다.
+  const userID = req.user.id;
+  const data = req.body;
+  console.log("서버가 데이터 받음", data);
+  console.log("JWT를 통해 인증된 사용자의 ID", userID);
+  const query = `UPDATE userinfo SET username = ?, school=?, grade=?, myMotto=? WHERE id = ?`;
+  const params = [data.username, data.school, data.grade, data.myMotto, userID];
+  await executeQuery(query, params);
+
+  const getResult = await executeQuery("SELECT * FROM userinfo WHERE id = ?", [
+    userID,
+  ]);
+
+  res.json(getResult);
+});
 
 async function executeQuery(query, params) {
   let conn;
@@ -332,24 +350,6 @@ app.delete("/api/todo-delete", authenticateUser, async (req, res) => {
 
 app.get("/api/achievement/thisweek", (req, res) => {
   res.json(chartData);
-});
-
-// 마이페이지 유저 프로필 수정기능
-app.put("/api/edit-profile", authenticateUser, async (req, res) => {
-  // //authenticateUser함수로 JWT를 통해 인증된 사용자의 ID를 가져옵니다.
-  const userID = req.user.id;
-  const data = req.body;
-  console.log("서버가 데이터 받음", data);
-  console.log("JWT를 통해 인증된 사용자의 ID", userID);
-  const query = `UPDATE userinfo SET username = ?, school=?, grade=?, myMotto=? WHERE id = ?`;
-  const params = [data.username, data.school, data.grade, data.myMotto, userID];
-  await executeQuery(query, params);
-
-  const getResult = await executeQuery("SELECT * FROM userinfo WHERE id = ?", [
-    userID,
-  ]);
-
-  res.json(getResult);
 });
 
 app.listen(PORT, () => {
