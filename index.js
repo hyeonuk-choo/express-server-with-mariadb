@@ -78,9 +78,16 @@ app.get("/api/userinfo", authenticateUser, (req, res) => {
   res.setHeader("Surrogate-Control", "no-store");
   const userID = req.user.id;
 
-  executeQuery("SELECT * FROM userinfo WHERE id = ?", [userID])
-    .then((result) => {
-      res.json(result);
+  // 두 쿼리를 병렬로 실행
+  Promise.all([
+    executeQuery("SELECT COUNT(*) as total_rows FROM userinfo"),
+    executeQuery("SELECT * FROM userinfo WHERE id = ?", [userID]),
+  ])
+    .then(([countResult, userResult]) => {
+      res.json({
+        total_rows: countResult[0].total_rows.toString(),
+        user: userResult[0],
+      });
     })
     .catch((err) => {
       console.error(err);
