@@ -17,7 +17,7 @@ const pool = mariadb.createPool({
 
 const ITEMS_PER_PAGE = 5;
 
-exports.getWeekRank = async (req, res) => {
+exports.getOverallRank = async (req, res) => {
   let conn;
   try {
     const page = parseInt(req.query.page);
@@ -26,7 +26,7 @@ exports.getWeekRank = async (req, res) => {
 
     conn = await pool.getConnection();
     const rows = await conn.query(
-      "SELECT * FROM week_rank ORDER BY rank ASC LIMIT ?, ?",
+      "SELECT * FROM total_rank ORDER BY rank ASC LIMIT ?, ?",
       [offset, ITEMS_PER_PAGE]
     );
 

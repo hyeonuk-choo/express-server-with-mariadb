@@ -6,16 +6,16 @@ const fs = require("fs");
 const path = require("path");
 
 // 데이터
-const weekRankRouter = require("./routes/weekRank");
 const monthRankRouter = require("./routes/monthRank");
+const overallRankRouter = require("./routes/overallRank");
 const { chartData } = require("./lineChartData.js");
 
 const app = express();
 const PORT = 8080;
 app.use(cors());
 app.use(express.json());
-app.use("/api/rank/week", weekRankRouter);
 app.use("/api/rank/month", monthRankRouter);
+app.use("/api/rank/overall", overallRankRouter);
 
 // mariaDB 로직
 const mariadb = require("mariadb");
@@ -234,6 +234,23 @@ app.post("/api/todo-create", authenticateUser, async (req, res) => {
     res.status(500).send("Error updating todo item.");
   } finally {
     if (connection) connection.release();
+  }
+});
+
+// 유저 랭킹정보
+app.get("/api/rank", authenticateUser, async (req, res) => {
+  const userID = req.user.id; //authenticateUser함수로 부터 받는다.
+  try {
+    const data = await executeQuery(
+      "SELECT month_rank.rank AS monthRank, total_rank.rank AS totalRank FROM month_rank JOIN total_rank ON month_rank.id = total_rank.id WHERE month_rank.id = ?",
+      [userID]
+    );
+    res.json(data);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching the rank data." });
   }
 });
 
