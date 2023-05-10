@@ -34,6 +34,7 @@ const pool = mariadb.createPool({
   password,
   database,
   connectionLimit: 20,
+  bigNumberStrings: true,
 });
 
 const authenticateUser = (req, res, next) => {
@@ -251,6 +252,35 @@ app.get("/api/rank", authenticateUser, async (req, res) => {
     res
       .status(500)
       .json({ error: "An error occurred while fetching the rank data." });
+  }
+});
+
+// 지난달, 이번달 달성률
+app.get("/api/achievement-rate", authenticateUser, async (req, res) => {
+  const userID = req.user.id; // authenticateUser함수로 부터 받는다.
+  try {
+    const thisMonthCountData = await executeQuery(
+      "SELECT COUNT(*) AS thisMonth_count FROM todos WHERE user_id = ? AND created_at >= DATE_FORMAT(NOW() ,'%Y-%m-01') AND created_at < DATE_FORMAT(DATE_ADD(NOW() , INTERVAL 1 MONTH), '%Y-%m-01')",
+      [userID]
+    );
+
+    const thisMonthCompletedCountData = await executeQuery(
+      "SELECT COUNT(*) AS thisMonth_completed_count FROM todos WHERE user_id = ? AND created_at >= DATE_FORMAT(NOW() ,'%Y-%m-01') AND created_at < DATE_FORMAT(DATE_ADD(NOW() , INTERVAL 1 MONTH), '%Y-%m-01') AND isCompleted = 1",
+      [userID]
+    );
+
+    const safeData = {
+      thisMonth_count: thisMonthCountData[0].thisMonth_count.toString(),
+      thisMonth_completed_count:
+        thisMonthCompletedCountData[0].thisMonth_completed_count.toString(),
+    };
+
+    res.json(safeData);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching the data." });
   }
 });
 
