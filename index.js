@@ -259,17 +259,34 @@ app.get("/api/rank", authenticateUser, async (req, res) => {
 app.get("/api/achievement-rate", authenticateUser, async (req, res) => {
   const userID = req.user.id; // authenticateUser함수로 부터 받는다.
   try {
+    // 지난달 플래너의 수
+    const lastMonthCountData = await executeQuery(
+      "SELECT COUNT(*) AS lastMonth_count FROM todos WHERE user_id = ? AND created_at >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 1 MONTH) ,'%Y-%m-01') AND created_at < DATE_FORMAT(NOW(), '%Y-%m-01')",
+      [userID]
+    );
+
+    // 지난달 완료한 플래너 수
+    const lastMonthCompletedCountData = await executeQuery(
+      "SELECT COUNT(*) AS lastMonth_completed_count FROM todos WHERE user_id = ? AND created_at >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 1 MONTH) ,'%Y-%m-01') AND created_at < DATE_FORMAT(NOW(), '%Y-%m-01') AND isCompleted = 1",
+      [userID]
+    );
+
+    // 이번달 플래너의 수
     const thisMonthCountData = await executeQuery(
       "SELECT COUNT(*) AS thisMonth_count FROM todos WHERE user_id = ? AND created_at >= DATE_FORMAT(NOW() ,'%Y-%m-01') AND created_at < DATE_FORMAT(DATE_ADD(NOW() , INTERVAL 1 MONTH), '%Y-%m-01')",
       [userID]
     );
 
+    // 이번달 완료한 플래너의 수
     const thisMonthCompletedCountData = await executeQuery(
       "SELECT COUNT(*) AS thisMonth_completed_count FROM todos WHERE user_id = ? AND created_at >= DATE_FORMAT(NOW() ,'%Y-%m-01') AND created_at < DATE_FORMAT(DATE_ADD(NOW() , INTERVAL 1 MONTH), '%Y-%m-01') AND isCompleted = 1",
       [userID]
     );
 
     const safeData = {
+      lastMonth_count: lastMonthCountData[0].lastMonth_count.toString(),
+      lastMonth_completed_count:
+        lastMonthCompletedCountData[0].lastMonth_completed_count.toString(),
       thisMonth_count: thisMonthCountData[0].thisMonth_count.toString(),
       thisMonth_completed_count:
         thisMonthCompletedCountData[0].thisMonth_completed_count.toString(),
@@ -310,12 +327,19 @@ app.put("/api/todo-iscompleted", authenticateUser, async (req, res) => {
     await connection.query(query);
 
     // todos 테이블에서 user_id가 같고 isCompleted가 true인 개수를 세어서 userinfo 테이블에 업데이트합니다.
-    const [{ count }] = await connection.query(
-      `SELECT COUNT(*) as count FROM todos WHERE user_id = ? AND isCompleted = 1`,
+    const [{ total_completed_count }] = await connection.query(
+      `SELECT COUNT(*) as total_completed_count FROM todos WHERE user_id = ? AND isCompleted = 1`,
       [userID]
     );
+
+    // todos 테이블에서 user_id가 같고 isCompleted가 true 이며, created_at이 이번달인 경우 추가
+    const [{ thisMonth_completed_count }] = await connection.query(
+      `SELECT COUNT(*) as thisMonth_completed_count FROM todos WHERE user_id = ? AND isCompleted = 1 AND created_at >= DATE_FORMAT(NOW() ,'%Y-%m-01') AND created_at < DATE_FORMAT(DATE_ADD(NOW() , INTERVAL 1 MONTH), '%Y-%m-01')`,
+      [userID]
+    );
+
     await connection.query(`UPDATE userinfo SET completeCnt = ? WHERE id = ?`, [
-      count,
+      total_completed_count,
       userID,
     ]);
 
