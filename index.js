@@ -217,15 +217,23 @@ app.post("/api/todo-create", authenticateUser, async (req, res) => {
     ];
     await connection.query(query, params);
 
-    // todos_count 값을 변경하기 전에 todos 테이블에서 해당 사용자의 row 개수를 확인합니다.
-    const [{ count }] = await connection.query(
-      "SELECT COUNT(*) as count FROM todos WHERE user_id = ?",
+    // totalCnt 값을 변경하기 전에 todos 테이블에서 해당 사용자의 row 개수를 확인합니다.
+    const [{ totalCnt }] = await connection.query(
+      "SELECT COUNT(*) as totalCnt FROM todos WHERE user_id = ?",
       [userID]
     );
-    await connection.query("UPDATE userinfo SET totalCnt = ? WHERE id = ?", [
-      count,
-      userID,
-    ]);
+
+    // thisMonthCnt 값을 변경하기 전에 todos 테이블에서 해당 사용자의 row 개수를 확인합니다.
+    const [{ thisMonthCnt }] = await connection.query(
+      "SELECT COUNT(*) as thisMonthCnt FROM todos WHERE user_id = ? AND created_at >= DATE_FORMAT(NOW() ,'%Y-%m-01') AND created_at < DATE_FORMAT(DATE_ADD(NOW() , INTERVAL 1 MONTH), '%Y-%m-01')",
+      [userID]
+    );
+
+    // DB query
+    await connection.query(
+      "UPDATE userinfo SET totalCnt = ?, thisMonthCnt = ? WHERE id = ?",
+      [totalCnt, thisMonthCnt, userID]
+    );
 
     await connection.commit(); // 트랜잭션 커밋
 
@@ -338,10 +346,10 @@ app.put("/api/todo-iscompleted", authenticateUser, async (req, res) => {
       [userID]
     );
 
-    await connection.query(`UPDATE userinfo SET completeCnt = ? WHERE id = ?`, [
-      total_completed_count,
-      userID,
-    ]);
+    await connection.query(
+      `UPDATE userinfo SET thisMonthCompleteCnt = ?, completeCnt = ? WHERE id = ?`,
+      [thisMonth_completed_count, total_completed_count, userID]
+    );
 
     const getResult = await connection.query(
       `SELECT * FROM todos WHERE user_id = ?`,
@@ -392,19 +400,26 @@ app.delete("/api/todo-delete", authenticateUser, async (req, res) => {
       userID,
     ]);
 
-    // todos_count 값을 변경하기 전에 todos 테이블에서 해당 사용자의 row 개수를 확인합니다.
-    const [{ totalCount }] = await connection.query(
-      "SELECT COUNT(*) as totalCount FROM todos WHERE user_id = ?",
+    // totalCnt 값을 변경하기 전에 todos 테이블에서 해당 사용자의 row 개수를 확인합니다.
+    const [{ totalCnt }] = await connection.query(
+      "SELECT COUNT(*) as totalCnt FROM todos WHERE user_id = ?",
       [userID]
     );
-    const [{ completeCount }] = await connection.query(
-      "SELECT COUNT(*) as completeCount FROM todos WHERE user_id = ? AND isCompleted = 1",
+    const [{ completeCnt }] = await connection.query(
+      "SELECT COUNT(*) as completeCnt FROM todos WHERE user_id = ? AND isCompleted = 1",
       [userID]
     );
+
+    // thisMonthCnt 값을 변경하기 전에 todos 테이블에서 해당 사용자의 row 개수를 확인합니다.
+    const [{ thisMonthCnt }] = await connection.query(
+      "SELECT COUNT(*) as thisMonthCnt FROM todos WHERE user_id = ? AND created_at >= DATE_FORMAT(NOW() ,'%Y-%m-01') AND created_at < DATE_FORMAT(DATE_ADD(NOW() , INTERVAL 1 MONTH), '%Y-%m-01')",
+      [userID]
+    );
+
     // userinfo 테이블의 totalCnt와 completeCnt 열을 업데이트합니다.
     await connection.query(
-      "UPDATE userinfo SET totalCnt = ?, completeCnt = ? WHERE id = ?",
-      [totalCount, completeCount, userID]
+      "UPDATE userinfo SET thisMonthCnt = ?, totalCnt = ?, completeCnt = ? WHERE id = ?",
+      [thisMonthCnt, totalCnt, completeCnt, userID]
     );
 
     await connection.commit(); // 트랜잭션 커밋
