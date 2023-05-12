@@ -21,7 +21,6 @@ exports.getMonthRank = async (req, res) => {
   let conn;
   try {
     const page = parseInt(req.query.page);
-    console.log("page", page);
     const offset = page * ITEMS_PER_PAGE;
 
     conn = await pool.getConnection();
