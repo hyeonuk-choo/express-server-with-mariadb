@@ -8,7 +8,6 @@ const path = require("path");
 // 데이터
 const monthRankRouter = require("./routes/monthRank");
 const overallRankRouter = require("./routes/overallRank");
-const { chartData } = require("./lineChartData.js");
 
 const app = express();
 const PORT = 8080;
@@ -434,10 +433,6 @@ app.delete("/api/todo-delete", authenticateUser, async (req, res) => {
   }
 });
 
-app.get("/api/achievement/thisweek", (req, res) => {
-  res.json(chartData);
-});
-
 app.listen(PORT, () => {
   console.log(`server is running on ${PORT}`);
 });
@@ -445,43 +440,3 @@ app.listen(PORT, () => {
 app.get("/", (req, res) => {
   res.send("Here is homepage!");
 });
-
-// // Multer를 사용한 파일 업로드 설정 // 해당 기능은 향후 추가 예정
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, "uploads/");
-//   },
-//   filename: (req, file, cb) => {
-//     cb(null, `${Date.now()}_${file.originalname}`);
-//   },
-// });
-
-// const upload = multer({ storage });
-
-// // 이미지 업로드 라우터 // 해당 기능은 향후 추가 예정
-// app.post("/api/upload", upload.single("profileImage"), async (req, res) => {
-//   try {
-//     const file = req.file;
-//     const userId = req.body.userId;
-
-//     if (!file) {
-//       res.status(400).send("No file uploaded.");
-//       return;
-//     }
-
-//     const conn = await pool.getConnection();
-//     const query = `
-//       UPDATE userinfo
-//       SET profileImage = ?
-//       WHERE id = ?;
-//     `;
-
-//     await conn.query(query, [file.path, userId]);
-//     conn.release();
-
-//     res.status(200).send("Profile image uploaded and saved.");
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send("Internal server error.");
-//   }
-// });
