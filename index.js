@@ -54,8 +54,10 @@ const authenticateUser = (req, res, next) => {
     }
     // 검증된 사용자 정보를 req.user에 저장합니다.
     req.user = decoded;
-    console.log("authenticateUser => req.user1", req.user);
-    // next 파라미터 콜백함수는 중요한 것이었다.
+
+    console.log("decoded,req.user", req.user);
+
+    // next 파라미터 콜백함수 중요
     next();
   });
 };
@@ -307,6 +309,53 @@ app.get("/api/achievement-rate", authenticateUser, async (req, res) => {
       .json({ error: "An error occurred while fetching the data." });
   }
 });
+
+// 라인차트 데이터 API, 최근 5일간 작성플래너 숫자 조회
+app.get(
+  "/api/recent-planners-for-five-days",
+  authenticateUser,
+  async (req, res) => {
+    const userID = req.user.id; // authenticateUser함수로 부터 받는다.
+    try {
+      const countToday = await executeQuery(
+        "SELECT COUNT(*) AS count_today FROM todos WHERE user_id = ? AND DATE(created_at) = CURDATE()",
+        [userID]
+      );
+      const countYesterday = await executeQuery(
+        "SELECT COUNT(*) AS count_yesterday FROM todos WHERE user_id = ? AND DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)",
+        [userID]
+      );
+      const countDayBeforeYesterday = await executeQuery(
+        "SELECT COUNT(*) AS count_day_before_yesterday FROM todos WHERE user_id = ? AND DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL 2 DAY)",
+        [userID]
+      );
+      const countThreeDaysAgo = await executeQuery(
+        "SELECT COUNT(*) AS count_three_days_ago FROM todos WHERE user_id = ? AND DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL 3 DAY)",
+        [userID]
+      );
+      const countFourDaysAgo = await executeQuery(
+        "SELECT COUNT(*) AS count_four_days_ago FROM todos WHERE user_id = ? AND DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL 4 DAY)",
+        [userID]
+      );
+
+      res.json({
+        count_today: countToday[0]["count_today"].toString(),
+        count_yesterday: countYesterday[0]["count_yesterday"].toString(),
+        count_day_before_yesterday:
+          countDayBeforeYesterday[0]["count_day_before_yesterday"].toString(),
+        count_three_days_ago:
+          countThreeDaysAgo[0]["count_three_days_ago"].toString(),
+        count_four_days_ago:
+          countFourDaysAgo[0]["count_four_days_ago"].toString(),
+      });
+    } catch (error) {
+      console.error(error);
+      res
+        .status(500)
+        .json({ error: "An error occurred while fetching the data." });
+    }
+  }
+);
 
 app.get("/api/planner-main", authenticateUser, (req, res) => {
   // delete require.cache[require.resolve("./todos.js")];
